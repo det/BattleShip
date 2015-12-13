@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.11)
 project (BattleShip)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -13,3 +13,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set (CMAKE_CXX_FLAGS_RELEASE "-O2 -flto")
 endif ()
 
+find_package(Qt5Widgets)
+set(CMAKE_AUTOMOC ON)
+
+add_subdirectory (src)
