@@ -11,5 +11,6 @@ struct Ship {
   std::size_t y;
   std::size_t length;
 };
+
 }  // namespace battleship
 #endif  // #ifndef BATTLESHIP_SHIP_H

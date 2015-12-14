@@ -3,11 +3,13 @@
 #include <QMouseEvent>
 #include <QPainter>
 
+#include <iostream>
+
 namespace battleship {
 
 // Size constants.
-static int const kCellSize = 40;
-static int const kAttackSize = 16;
+static int const kCellSize = 30;
+static int const kAttackSize = 12;
 static int const kAttackMargin = (kCellSize - kAttackSize) / 2;
 static int const kMaxWidth = 26;
 static int const kMaxHeight = 26;
@@ -20,7 +22,7 @@ static char const *const x_labels_[kMaxWidth] = {
 
 static char const *const y_labels_[kMaxHeight] = {
     "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "X"};
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
 
 // Color constants.
 static int const kShipColor[] = {160, 160, 160};
@@ -87,10 +89,10 @@ void Arena::paintEvent(QPaintEvent *) {
   DrawGrid();
 
   switch (mode_) {
-    case kReveal:
     case kPlace:
-      DrawReveal();
       DrawDrag();
+    case kReveal:
+      DrawReveal();
       break;
 
     case kAttack:
@@ -122,10 +124,6 @@ void Arena::mousePressEvent(QMouseEvent *event) {
   std::size_t x2 = static_cast<std::size_t>(x);
   std::size_t y2 = static_cast<std::size_t>(y);
 
-  // Mark the current cell as selected.
-  drag_rect_ = MakeSingleRect(x2, y2);
-  this->update();
-
   // Draw according to mode.
   switch (mode_) {
     case kDisplay:
@@ -133,6 +131,9 @@ void Arena::mousePressEvent(QMouseEvent *event) {
       return;
 
     case kPlace:
+      // Mark the current cell as selected.
+      drag_rect_ = MakeSingleRect(x2, y2);
+      this->update();
     case kAttack:
       pressed_x_ = x2;
       pressed_y_ = y2;
@@ -440,6 +441,7 @@ void Arena::Init(std::size_t x_size, std::size_t y_size) {
   reveal_rects_.clear();
   hit_rects_.clear();
   miss_rects_.clear();
+  updateGeometry();
 }
 
 // Return our optimal size.
@@ -449,4 +451,5 @@ QSize Arena::sizeHint() const {
   size.setHeight(y_size_ * kCellSize + kCellSize + 4);
   return size;
 }
+
 }  // namespace battleship

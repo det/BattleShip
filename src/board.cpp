@@ -133,4 +133,5 @@ Board::AttackResult Board::Attack(std::size_t x, std::size_t y) {
 
   return result;
 }
+
 }  // namespace battleship

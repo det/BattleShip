@@ -59,5 +59,6 @@ class Board {
   PlaceResult Place(Ship const &ship);
   AttackResult Attack(std::size_t x, std::size_t y);
 };
+
 }  // namespace battleship
 #endif  // #ifndef BATTLESHIP_BOARD_H

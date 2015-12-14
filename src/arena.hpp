@@ -69,5 +69,6 @@ class Arena : public QWidget {
   void Attacked(std::size_t x, std::size_t y);
   void ShipPlaced(Ship const &ship);
 };
+
 }  // namespace battleship
 #endif  // #ifndef BATTLESHIP_ARENA_H

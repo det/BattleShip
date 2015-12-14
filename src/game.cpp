@@ -1,96 +1,27 @@
 #include "game.hpp"
 
-#include <QDialog>
 #include <QMessageBox>
-#include <QTextEdit>
 
 namespace battleship {
 
-static char const* const kRules =
-    "Rules:\n\n"
-
-    "At the beginning of the game each player will place 5 ships in their "
-    "opponents arena. The lengths of ships to be placed are 2, 3, 3, 4, and 5. "
-    "A ship is placed by holding a mouse button and dragging a vertical or "
-    "horizontal line along the cells a player wishes to place a ship onto. For "
-    "example, dragging a line across 4 cells will place a ship of length 4. "
-    "Ships may not overlap. When Player1 has finished placing ships on "
-    "Player2's arena, Player2 will place their ships on Player1's arena.\n\n"
-
-    "When the placing round is over, players will alternate in making attacks. "
-    "After each attack, markers will be placed indicating hits and misses. "
-    "Sunk ships will also be revealed. When a player has sunk all of the "
-    "opponents ships, that player has won the game.";
-
-// Size constants.
-static std::size_t kWidth = 10;
-static std::size_t kHeight = 10;
-
-enum CheckPlacementType { kFreeIndex, kAlreadyPlaced, kInvalidLength };
-
-struct CheckPlacementResult {
-  CheckPlacementType type;
-  std::size_t index;
-};
-
 // Add the unplaced ships to a string.
-static void AppendRemainingShips(QString& string, std::bitset<5> set) {
-  if (!set[0]) string.append(" 2");
-  if (!set[1]) string.append(" 3");
-  if (!set[2]) string.append(" 3");
-  if (!set[3]) string.append(" 4");
-  if (!set[4]) string.append(" 5");
-}
-
-// Check to see if the specified length has been placed yet.
-static CheckPlacementResult CheckPlacement(std::bitset<5> set,
-                                           std::size_t length) {
-  CheckPlacementResult res;
-  res.type = kFreeIndex;
-  switch (length) {
-    case 2:
-      if (set[0]) res.type = kAlreadyPlaced;
-      res.index = 0;
-      break;
-
-    case 3:
-      if (set[1]) {
-        if (set[2])
-          res.type = kAlreadyPlaced;
-        else
-          res.index = 2;
-      } else
-        res.index = 1;
-      break;
-
-    case 4:
-      if (set[3]) res.type = kAlreadyPlaced;
-      res.index = 3;
-      break;
-
-    case 5:
-      if (set[4]) res.type = kAlreadyPlaced;
-      res.index = 4;
-      break;
-
-    default:
-      res.type = kInvalidLength;
+static void AppendRemainingShips(QString& string,
+                                 std::vector<std::size_t> const& ship_set) {
+  if (ship_set.empty()) return;
+  string.append(QString::number(ship_set[0]));
+  for (std::size_t i = 1, e = ship_set.size(); i != e; ++i) {
+    string.append(", ");
+    string.append(QString::number(ship_set[i]));
   }
-  return res;
 }
 
 // Try to place a ship on the specified group.
 bool Game::PlaceShip(Group& group, Ship const& ship) {
-  CheckPlacementResult res1 = CheckPlacement(group.ships_placed, ship.length);
-  if (res1.type == kAlreadyPlaced) {
-    QString string = "This ship has already been placed. Remaining lengths:";
-    AppendRemainingShips(string, group.ships_placed);
-    status_bar_->showMessage(string);
-    return false;
-  }
-  if (res1.type == kInvalidLength) {
-    QString string = "This is not a valid length. Remaining lengths:";
-    AppendRemainingShips(string, group.ships_placed);
+  std::vector<std::size_t>::iterator it =
+      std::find(group.ship_set.begin(), group.ship_set.end(), ship.length);
+  if (it == group.ship_set.end()) {
+    QString string = "This is not a valid length. Remaining lengths: ";
+    AppendRemainingShips(string, group.ship_set);
     status_bar_->showMessage(string);
     return false;
   }
@@ -101,7 +32,7 @@ bool Game::PlaceShip(Group& group, Ship const& ship) {
       group.arena->AddReveal(*res2.ship);
       ++group.ships_left;
       status_bar_->showMessage("Ship has been placed.");
-      group.ships_placed[res1.index] = true;
+      group.ship_set.erase(it);
       return true;
     case Board::kOverlap:
       status_bar_->showMessage("Ships may not overlap.");
@@ -162,7 +93,7 @@ void Game::BeginPlacing2() {
 void Game::BeginAttacking1() {
   group1_.arena->SetAttacking();
   group2_.arena->SetDisplaying();
-  group1_.arena->setStatusTip("Player1: Click a square to make an attack.");
+  group1_.arena->setStatusTip("Player1: Click a cell to make an attack.");
   group2_.arena->setStatusTip("");
 }
 
@@ -171,7 +102,7 @@ void Game::BeginAttacking2() {
   group2_.arena->SetAttacking();
   group1_.arena->SetDisplaying();
   group1_.arena->setStatusTip("");
-  group2_.arena->setStatusTip("Player2: Click a square to make an attack.");
+  group2_.arena->setStatusTip("Player2: Click a cell to make an attack.");
 }
 
 // Handle attacks on arena1.
@@ -208,7 +139,7 @@ void Game::HandleAttacked2(std::size_t x, std::size_t y) {
 void Game::HandleShipPlaced1(Ship const& ship) {
   if (!PlaceShip(group1_, ship)) return;
 
-  if (group1_.ships_placed.all()) {
+  if (group1_.ship_set.empty()) {
     QMessageBox::information(this, "BattleShip",
                              "All ships have been deployed for Player2.");
     BeginAttacking1();
@@ -219,51 +150,62 @@ void Game::HandleShipPlaced1(Ship const& ship) {
 void Game::HandleShipPlaced2(Ship const& ship) {
   if (!PlaceShip(group2_, ship)) return;
 
-  if (group2_.ships_placed.all()) {
+  if (group2_.ship_set.empty()) {
     QMessageBox::information(this, "BattleShip",
                              "All ships have been deployed for Player1.");
     BeginPlacing1();
   }
 }
 
-// Start a new game as triggerd by the menu.
-void Game::HandleNewGame(bool) {
-  group1_.arena->Init(kWidth, kHeight);
-  group2_.arena->Init(kWidth, kHeight);
-  group1_.board.Init(kWidth, kHeight);
-  group2_.board.Init(kWidth, kHeight);
+// Dont do anything.
+void Game::HandleCancelNewGame() { game_selection_.close(); }
+
+// Create a new game from the selected size.
+void Game::HandleCreateNewGame() {
+  MapSize size = game_selection_.GetMapSize();
+  ShipSet set = game_selection_.GetShipSet();
+  group1_.arena->Init(size.x, size.y);
+  group2_.arena->Init(size.x, size.y);
+  group1_.board.Init(size.x, size.y);
+  group2_.board.Init(size.x, size.y);
   group1_.ships_left = 0;
   group2_.ships_left = 0;
-  group1_.ships_placed.reset();
-  group2_.ships_placed.reset();
+  group1_.ship_set.assign(set.first, set.last);
+  group2_.ship_set.assign(set.first, set.last);
+  game_selection_.close();
   BeginPlacing2();
 }
 
-// Display the rules as triggerd by the menu.
-void Game::HandleHowToPlay(bool) {
-  QTextEdit* text_edit = new QTextEdit;
-  text_edit->setText(kRules);
-  text_edit->setReadOnly(true);
-  QHBoxLayout* layout = new QHBoxLayout;
-  layout->addWidget(text_edit);
-  QDialog dialog(this);
-  dialog.setModal(true);
-  dialog.setLayout(layout);
-  dialog.resize(640, 480);
-  dialog.exec();
+// Open the new game dialog.
+void Game::HandleNewGame(bool) { game_selection_.exec(); }
+
+// Exit the game.
+void Game::HandleExit(bool) { close(); }
+
+// Open the new rules dialog.
+void Game::HandleHowToPlay(bool) { rules_.exec(); }
+
+// Resize the window when our layout changes.
+bool Game::event(QEvent* event) {
+  if (event->type() == QEvent::LayoutRequest) setFixedSize(sizeHint());
+  return QMainWindow::event(event);
 }
 
-// Construct an arena and wait for a new game.
-Game::Game()
-    : menu_bar_(new QMenuBar),
+// Construct a Game and wait for a new game.
+Game::Game(std::size_t width, std::size_t height)
+    : game_selection_(this),
+      rules_(this),
+      menu_bar_(new QMenuBar),
       layout_(new QHBoxLayout),
       status_bar_(new QStatusBar) {
-  group1_.arena = new Arena(kWidth, kHeight);
-  group2_.arena = new Arena(kWidth, kHeight);
+  group1_.arena = new Arena(width, height);
+  group2_.arena = new Arena(width, height);
 
   QAction* new_game = new QAction("New game", this);
+  QAction* exit = new QAction("Exit", this);
   QMenu* file_menu = menu_bar_->addMenu("&File");
   file_menu->addAction(new_game);
+  file_menu->addAction(exit);
 
   QAction* how_to_play = new QAction("How to play", this);
   QMenu* help_menu = menu_bar_->addMenu("&Help");
@@ -279,10 +221,16 @@ Game::Game()
 
   // Connect callbacks.
   connect(new_game, &QAction::triggered, this, &Game::HandleNewGame);
+  connect(exit, &QAction::triggered, this, &Game::HandleExit);
   connect(how_to_play, &QAction::triggered, this, &Game::HandleHowToPlay);
   connect(group1_.arena, &Arena::Attacked, this, &Game::HandleAttacked1);
   connect(group1_.arena, &Arena::ShipPlaced, this, &Game::HandleShipPlaced1);
   connect(group2_.arena, &Arena::Attacked, this, &Game::HandleAttacked2);
   connect(group2_.arena, &Arena::ShipPlaced, this, &Game::HandleShipPlaced2);
+  connect(game_selection_.buttons(), &QDialogButtonBox::accepted, this,
+          &Game::HandleCreateNewGame);
+  connect(game_selection_.buttons(), &QDialogButtonBox::rejected, this,
+          &Game::HandleCancelNewGame);
 }
+
 }  // namespace battleship
