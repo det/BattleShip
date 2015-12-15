@@ -1,5 +1,5 @@
-#ifndef BATTLESHIP_NEW_GAME_SELECTOR_H
-#define BATTLESHIP_NEW_GAME_SELECTOR_H
+#ifndef BATTLESHIP_GAME_SELECTION_H
+#define BATTLESHIP_GAME_SELECTION_H
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -20,7 +20,7 @@ struct ShipSet {
 };
 
 // Modal dialog for creating a new game.
-class NewGameSelector : public QDialog {
+class GameSelection : public QDialog {
   Q_OBJECT
 
  private:
@@ -35,11 +35,11 @@ class NewGameSelector : public QDialog {
   QDialogButtonBox* buttons_;
 
  public:
-  NewGameSelector(QWidget* parent);
+  GameSelection(QWidget* parent);
   QDialogButtonBox* buttons();
   MapSize GetMapSize();
   ShipSet GetShipSet();
 };
 
 }  // namespace battleship
-#endif  // #ifndef BATTLESHIP_NEW_GAME_SELECTOR_H
+#endif  // #ifndef BATTLESHIP_GAME_SELECTION_H

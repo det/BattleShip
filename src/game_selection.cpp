@@ -42,7 +42,7 @@ static QString MakeSetString(ShipSet set) {
   return ret;
 }
 
-NewGameSelector::NewGameSelector(QWidget* parent)
+GameSelection::GameSelection(QWidget* parent)
     : QDialog(parent),
       size_radio1_(new QRadioButton(MakeSizeString(size1))),
       size_radio2_(new QRadioButton(MakeSizeString(size2))),
@@ -81,10 +81,10 @@ NewGameSelector::NewGameSelector(QWidget* parent)
 }
 
 // Button accessor, neccesary to connect events.
-QDialogButtonBox* NewGameSelector::buttons() { return buttons_; }
+QDialogButtonBox* GameSelection::buttons() { return buttons_; }
 
 // Return the selected map size.
-MapSize NewGameSelector::GetMapSize() {
+MapSize GameSelection::GetMapSize() {
   if (size_radio1_->isChecked()) return size1;
   if (size_radio2_->isChecked()) return size2;
   if (size_radio3_->isChecked()) return size3;
@@ -92,7 +92,7 @@ MapSize NewGameSelector::GetMapSize() {
 }
 
 // Return the selected ship set.
-ShipSet NewGameSelector::GetShipSet() {
+ShipSet GameSelection::GetShipSet() {
   if (set_radio1_->isChecked()) return MakeShipSet(set1);
   if (set_radio2_->isChecked()) return MakeShipSet(set2);
   if (set_radio3_->isChecked()) return MakeShipSet(set3);

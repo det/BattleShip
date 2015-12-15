@@ -27,7 +27,7 @@ class Game : public QMainWindow {
     std::vector<std::size_t> ship_set;
   };
 
-  NewGameSelector game_selection_;
+  GameSelection game_selection_;
   Rules rules_;
   QMenuBar *menu_bar_;
   QHBoxLayout *layout_;
